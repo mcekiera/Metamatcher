@@ -64,7 +64,8 @@ public class Metamatcher {
         return result.toString();
     }
 
-    /**
+    /**It extracts fragments of regular expression enclosed by parentheses, checks if these are capturing type,
+     * and put start and end indices into Map object
      * @return Map contains fragments of regular expression which capture groups
      */
     private TreeMap<Integer,Integer> getGroups(){
