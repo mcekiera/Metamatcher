@@ -1,4 +1,8 @@
+package Metamatcher;
+
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -9,14 +13,19 @@ public class Metamatcher {
 
     Metamatcher(String pattern){
         this.pattern = pattern;
-        groupsIndices = getGroups();
+        groupsIndices = (TreeMap<Integer,Integer>)getGroups();
+    }
+
+    Metamatcher(Pattern pattern){
+        this.pattern = pattern.toString();
+        groupsIndices = (TreeMap<Integer,Integer>)getGroups();
     }
     /**
      * @param group ordinal number of group
      * @return starting index of a fragment of pattern, which contain group capturing
      */
     public int start(int group){
-        ArrayList<Integer> indices = new ArrayList<Integer>(groupsIndices.keySet());
+        List<Integer> indices = new ArrayList<Integer>(groupsIndices.keySet());
         indices.add(0,0);
         return indices.get(group);
     }
@@ -26,7 +35,7 @@ public class Metamatcher {
      * @return ending index of a fragment of pattern, which contain group capturing
      */
     public int end(int group){
-        ArrayList<Integer> indices = new ArrayList<Integer>(groupsIndices.values());
+        List<Integer> indices = new ArrayList<Integer>(groupsIndices.values());
         indices.add(0,pattern.length());
         return indices.get(group);
     }
@@ -58,28 +67,39 @@ public class Metamatcher {
                     .append("-")
                     .append(end(i))
                     .append("\t")
-                    .append(group(i))
-                    .append("\n");
+                    .append(group(i));
         }
         return result.toString();
     }
 
+    public void usePattern(String pattern){
+        this.pattern = pattern;
+        groupsIndices = (TreeMap<Integer,Integer>)getGroups();
+    }
+
+    public void usePattern(Pattern pattern){
+        this.pattern = pattern.toString();
+        groupsIndices = (TreeMap<Integer,Integer>)getGroups();
+    }
+
+
+
     /**It extracts fragments of regular expression enclosed by parentheses, checks if these are capturing type,
-     * and put start and end indices into Map object
+     * and put start(key) and end(value) indices into Map object
      * @return Map contains fragments of regular expression which capture groups
      */
-    private TreeMap<Integer,Integer> getGroups(){
+    Map<Integer,Integer> getGroups(){
         String copy = pattern;
         Pattern pattern = Pattern.compile("\\([^\\(\\)]+\\)");
         Matcher matcher = pattern.matcher(copy);
-        TreeMap<Integer,Integer> temp = new TreeMap<Integer,Integer>();
+        Map<Integer,Integer> temp = new TreeMap<Integer,Integer>();
 
         while(matcher.find()){
             if(isCapturingGroup(matcher.group(0))){
                 temp.put(matcher.start(), matcher.end());
             }
             copy = copy.substring(0,matcher.start()) + replaceWithSpaces(matcher.group(0)) + copy.substring(matcher.end());
-            matcher = pattern.matcher(copy);
+            matcher.reset(copy);
         }
 
         return temp;
@@ -89,20 +109,33 @@ public class Metamatcher {
      * @param fragment of regular expression, enclosed by brackets
      * @return true if given String consist regular expression which capture groups
      */
-    private boolean isCapturingGroup(String fragment){
+    boolean isCapturingGroup(String fragment){
         return fragment.matches("((?<!\\\\)\\((?!\\?<?[:=!])[^\\(\\)]+\\))");
     }
 
     /**
      * Provide a filler String composed of spaces, to replace part enclosed by brackets
-     * @param part String containing starting and ending with brackets,
+     * @param part String containing capturing group of regex, starting and ending with brackets,
      * @return String composed of spaces (' '), with length of part object,
      */
-    private String replaceWithSpaces(String part){
+    String replaceWithSpaces(String part){
         String filler = "";
         for(int i = 0; i < part.length(); i++){
             filler += " ";
         }
         return filler;
+    }
+
+    public static void main(String[] args){
+        String[] patterns = {"(a(b(c))d)(e(fg(h)ij))",
+                "^([_A-Za-z0-9-]+)(\\.[_A-Za-z0-9-]+)*@[A-Za-z0-9]+\n(\\.[A-Za-z0-9]+)*(\\.[A-Za-z]{2,})$",
+                "\\((\\d+\\.\\d+)\\s(\\d+\\.\\d+)",
+                "[a-z]+\\d"};
+        for(String pattern : patterns) {
+            Metamatcher matcher = new Metamatcher(pattern);
+            System.out.println(matcher.toString());
+            System.out.println(matcher.groupCount());
+            System.out.println();
+        }
     }
 }
